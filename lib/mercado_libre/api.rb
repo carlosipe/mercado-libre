@@ -49,9 +49,9 @@ module MercadoLibre
     end
 
     def authenticated_request(verb, url, data = {})
-      url_with_token = "#{url}?access_token=#{access_token}"
+      new_url = url_with_token(url)
       begin
-        request(verb, url_with_token, data)
+        request(verb, new_url, data)
       rescue Requests::Error
         @retries ||=0
         @retries +=1
@@ -89,6 +89,16 @@ module MercadoLibre
       }
 
       request(:post, url, data).fetch('access_token')
+    end
+
+    def url_with_token(url)
+      require 'uri'
+      uri = URI(url)
+      params = URI.decode_www_form(uri.query || '')
+      params << ['access_token', access_token]
+      uri.query = URI.encode_www_form(params).to_s
+
+      uri.to_s
     end
   end
 end

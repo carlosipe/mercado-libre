@@ -103,3 +103,17 @@ test "authenticated_request gets new access token when forbidden" do
   published_item = ml.publish_item(item)
   assert(ml.access_token =~ /^APP/)
 end
+
+test ".url_with_token(url) returns right url when doesnt have  other query params" do
+  ml = api
+  ml.access_token = 'APP123456'
+  url = '/users/189517696/items/search'
+  assert_equal ml.url_with_token(url), '/users/189517696/items/search?access_token=APP123456'
+end
+
+test ".url_with_token(url) returns right url when has query params" do
+  ml = api
+  ml.access_token = 'APP123456'
+  url = '/users/189517696/items/search?limit=200&offset=100'
+  assert_equal ml.url_with_token(url), '/users/189517696/items/search?limit=200&offset=100&access_token=APP123456'
+end
