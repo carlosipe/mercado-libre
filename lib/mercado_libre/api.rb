@@ -69,7 +69,7 @@ module MercadoLibre
       verb = verb.to_s.upcase
       begin
         response = Requests.request(verb, url, data: data)
-      rescue StandardError => e
+      rescue Requests::Error => e
         new_message = [e.message.strip,e.response.body].join("\n")
         raise $!, new_message, $!.backtrace
       end
