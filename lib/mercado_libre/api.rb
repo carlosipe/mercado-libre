@@ -5,9 +5,10 @@ module MercadoLibre
     attr_accessor :access_token
 
     def initialize(params)
-      @app_key    = params.fetch(:app_key)
-      @app_secret = params.fetch(:app_secret)
-      @host       = params.fetch(:host) { ENV.fetch('MERCADOLIBRE_API_HOST') }
+      @app_key      = params.fetch(:app_key)
+      @app_secret   = params.fetch(:app_secret)
+      @host         = params.fetch(:host) { ENV.fetch('MERCADOLIBRE_API_HOST') }
+      @retries_num  = Integer( params.fetch(:retries) { ENV.fetch('MERCADOLIBRE_HTTP_RETRIES') { 10 } } )
     end
 
     def publish_item(item)
@@ -49,31 +50,25 @@ module MercadoLibre
     end
 
     def authenticated_request(verb, url, data = {})
-      new_url = url_with_token(url)
-      begin
-        request(verb, new_url, data)
-      rescue Requests::Error
-        @retries ||=0
-        @retries +=1
-        if $!.message.strip == 'Forbidden'
-          @access_token = nil
-          authenticated_request(verb, url, data) if @retries < 10
-        else
-          raise $!
-        end
-      end
+      request(verb, url, data, authenticated: true)
     end
 
-    def request(verb, url, data)
-      url = "#{@host}#{url}"
+    def request(verb, url, data, authenticated: false)
+      full_url = "#{@host}#{url}"
+      full_url = url_with_token(full_url) if authenticated
       verb = verb.to_s.upcase
-      begin
-        response = Requests.request(verb, url, data: data)
-      rescue Requests::Error => e
-        new_message = [e.message.strip,e.response.body].join("\n")
-        raise $!, new_message, $!.backtrace
-      end
+      tries ||= @retries_num
+      response = Requests.request(verb, full_url, data: data)
+
       JSON.parse(response.body)
+
+    rescue *HTTPErrors
+      retry unless (tries -=1).zero?
+      raise
+    rescue Requests::Error
+      @access_token = nil if $!.message.strip == 'Forbidden' # Release access token
+      retry unless (tries -=1).zero?
+      raise $!, [$!.message.strip,$!.response.body].join("\n"), $!.backtrace #Verbose errors
     end
 
     def access_token
@@ -92,13 +87,13 @@ module MercadoLibre
     end
 
     def url_with_token(url)
-      require 'uri'
-      uri = URI(url)
-      params = URI.decode_www_form(uri.query || '')
-      params << ['access_token', access_token]
-      uri.query = URI.encode_www_form(params).to_s
-
-      uri.to_s
+      "#{url}#{url.include?('?') ? '&' : '?'}access_token=#{access_token}"
     end
   end
+end
+
+module MercadoLibre
+  HTTPErrors = [Timeout::Error, Errno::ETIMEDOUT, Errno::EINVAL, Errno::ECONNRESET,
+    Errno::ECONNREFUSED, EOFError, Net::HTTPBadResponse,
+    Net::HTTPHeaderSyntaxError, Net::ProtocolError]
 end
