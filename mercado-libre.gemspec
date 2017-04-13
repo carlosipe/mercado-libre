@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name              = "mercado-libre"
-  s.version           = "0.0.4"
+  s.version           = "0.0.5"
   s.summary           = "MercadoLibre API"
   s.description       = "mercado-libre"
   s.authors           = ["CarlosIPe"]
