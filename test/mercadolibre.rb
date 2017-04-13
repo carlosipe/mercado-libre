@@ -68,6 +68,21 @@ test "publish item returns item with permalink" do
   assert(published_item.permalink =~ /http/)
 end
 
+test "pauses item and status is paused" do
+  published_item = api.publish_item(item)
+  sleep(10) if ENV['TESTING_AGAINST_ML_SERVER']
+  api.pause_item(published_item.id)
+  assert_equal(api.get_item(published_item.id).status, 'paused')
+end
+
+test "unpauses item and status is active" do
+  published_item = api.publish_item(item)
+  sleep(10) if ENV['TESTING_AGAINST_ML_SERVER']
+  api.pause_item(published_item.id)
+  api.unpause_item(published_item.id)
+  assert_equal(api.get_item(published_item.id).status, 'active')
+end
+
 test "closes item and status is closed" do
   published_item = api.publish_item(item)
   sleep(10) if ENV['TESTING_AGAINST_ML_SERVER']

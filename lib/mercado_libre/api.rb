@@ -25,11 +25,26 @@ module MercadoLibre
       Item.new(response)
     end
 
+    def pause_item(item_id)
+      url = "/items/#{item_id}"
+      authenticated_request(:put, url, {status: :paused}.to_json)
+    end
+
+    def unpause_item(item_id)
+      url = "/items/#{item_id}"
+      authenticated_request(:put, url, {status: :active}.to_json)
+    end
+
     def close_item(item_id)
       url = "/items/#{item_id}"
       authenticated_request(:put, url, {status: :closed}.to_json)
     end
-    
+   
+    def delete_item(item_id)
+      url = "/items/#{item_id}"
+      authenticated_request(:put, url, {deleted: true}.to_json)
+    end
+
     def relist_item(item_id, params)
       url = "/items/#{item_id}/relist"
       payload = {
